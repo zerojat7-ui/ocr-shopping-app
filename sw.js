@@ -1,4 +1,4 @@
-const CACHE_NAME = "ocr-shop-v1";
+const CACHE_NAME = "ocr-shop-v2";
 
 const urlsToCache = [
 
