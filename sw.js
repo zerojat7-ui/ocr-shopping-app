@@ -1,13 +1,8 @@
-const CACHE_NAME = "ocr-shop-v3";
+const CACHE_NAME = "ocr-shop-v4";
 
 const urlsToCache = [
   "./",
   "./index.html",
-  "./history.html",
-  "./style.css",
-  "./script.js",
-  "./history.js",
-  "./db.js",
   "./manifest.json"
 ];
 

@@ -4,65 +4,453 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>코스트코 쇼핑 계산기</title>
-<link rel="stylesheet" href="style.css">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2563ff">
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system, BlinkMacSystemFont, sans-serif; background:#f5f6fa; color:#111; }
+
+.tabBar { position:fixed; bottom:0; left:0; right:0; display:flex; background:white; border-top:1px solid #eee; z-index:100; }
+.tabBtn { flex:1; padding:12px; border:none; background:none; font-size:22px; color:#aaa; cursor:pointer; }
+.tabBtn.active { color:#2563ff; }
+
+.page { display:none; padding:20px; padding-bottom:130px; }
+.page.active { display:block; }
+
+.topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+.topbar h1 { font-size:20px; }
+
+.upload-actions { display:flex; gap:10px; margin-bottom:15px; }
+.actionBtn { flex:1; background:#2563ff; color:white; border:none; padding:15px; border-radius:15px; font-size:16px; font-weight:bold; cursor:pointer; active:opacity:0.8; }
+
+/* 상품 카드 */
+.swipeWrapper { position:relative; overflow:hidden; border-radius:20px; margin-bottom:12px; }
+.deleteArea {
+  position:absolute; right:0; top:0; bottom:0; width:90px;
+  background:#ff4d4f; display:flex; align-items:center; justify-content:center;
+  color:white; font-weight:bold; border-radius:0 20px 20px 0;
+}
+.productCard {
+  position:relative; background:white; border-radius:20px; padding:15px;
+  display:flex; gap:12px; align-items:center; transition:transform 0.2s; touch-action:pan-y;
+}
+.productCard img { width:70px; height:70px; border-radius:12px; object-fit:cover; flex-shrink:0; }
+.productInfo { flex:1; min-width:0; }
+.productInfo h3 { font-size:15px; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.productInfo .price { color:#2563ff; font-size:18px; font-weight:bold; margin-top:4px; }
+
+/* 분석중 상태 */
+.productCard.pending { opacity:0.6; }
+.pendingBadge {
+  font-size:12px; color:#fff; background:#aaa;
+  border-radius:20px; padding:2px 8px; display:inline-block; margin-top:4px;
+}
+.pendingBadge.done { background:#22c55e; }
+
+.qtyBox { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.qtyBtn { width:32px; height:32px; border:none; border-radius:50%; background:#f0f0f0; font-size:18px; cursor:pointer; }
+
+.summaryBar {
+  position:fixed; left:0; right:0; bottom:58px;
+  background:white; padding:15px 20px; border-top:1px solid #eee;
+  display:flex; justify-content:space-between; align-items:center; z-index:99;
+}
+.summaryBar .label { font-size:13px; color:#888; }
+.summaryBar .count { font-size:17px; font-weight:bold; }
+.summaryBar .total { font-size:26px; font-weight:bold; color:#2563ff; }
+
+.actionRow { display:flex; gap:10px; margin-bottom:15px; }
+.actionRow button { flex:1; height:52px; border:none; border-radius:15px; font-size:16px; font-weight:bold; cursor:pointer; }
+#saveBtn  { background:#2563ff; color:white; }
+#resetBtn { background:#ff4d4f; color:white; }
+
+.historyCard { background:white; border-radius:20px; padding:18px; margin-bottom:12px; }
+.historyCard .hTitle { font-size:16px; font-weight:bold; margin-bottom:6px; }
+.historyCard .hDate  { font-size:13px; color:#aaa; margin-bottom:10px; }
+.historyCard .hTotal { font-size:26px; font-weight:bold; color:#2563ff; }
+.historyCard .hCount { font-size:14px; color:#888; margin-top:4px; }
+
+.emptyMsg { text-align:center; padding:60px 20px; color:#aaa; font-size:15px; }
+
+#editSheet {
+  position:fixed; left:0; right:0; bottom:-100%; z-index:999; transition:0.3s;
+  background:white; border-top-left-radius:30px; border-top-right-radius:30px;
+  box-shadow:0 -10px 30px rgba(0,0,0,0.15);
+}
+#editSheet.show { bottom:0; }
+.sheetContent { padding:25px; }
+.sheetHandle { width:60px; height:5px; background:#ddd; border-radius:999px; margin:0 auto 20px; }
+#editSheet input, #editSheet textarea {
+  width:100%; margin-bottom:12px; border:none; background:#f5f6fa;
+  border-radius:12px; padding:14px; font-size:16px;
+}
+#editSheet textarea { height:100px; resize:none; }
+#saveSheetBtn { width:100%; height:54px; border:none; border-radius:15px; background:#2563ff; color:white; font-size:17px; font-weight:bold; cursor:pointer; }
+</style>
 </head>
 <body>
 
-<div class="app">
-  <header class="topbar">
+<div id="pageShopping" class="page active">
+  <div class="topbar">
     <h1>🛒 코스트코 쇼핑 계산기</h1>
-    <button onclick="goHistory()">기록</button>
-  </header>
+  </div>
 
   <div class="upload-actions">
-    <button class="actionBtn" onclick="document.getElementById('cameraInput').click()">📷 사진 촬영</button>
-    <button class="actionBtn" onclick="document.getElementById('galleryInput').click()">📂 사진 업로드</button>
+    <button class="actionBtn" onclick="document.getElementById('cameraInput').click()">📷 촬영</button>
+    <button class="actionBtn" onclick="document.getElementById('galleryInput').click()">📂 업로드</button>
   </div>
 
   <input type="file" id="cameraInput" hidden accept="image/*" capture="environment">
   <input type="file" id="galleryInput" hidden accept="image/*">
 
-  <img id="previewImage">
+  <div class="actionRow">
+    <button id="saveBtn">기록 저장</button>
+    <button id="resetBtn">전체 초기화</button>
+  </div>
 
-  <div id="productList"></div>
+  <div id="productList">
+    <div class="emptyMsg">사진을 찍으면 바로 추가됩니다</div>
+  </div>
+
+  <div class="summaryBar">
+    <div>
+      <div class="label">선택 상품</div>
+      <div class="count" id="itemCount">0개</div>
+    </div>
+    <div class="total"><span id="grandTotal">0</span>원</div>
+  </div>
 </div>
 
-<footer class="bottomBar">
-  <div class="summary">
-    <div>
-      <p>선택 상품</p>
-      <h3 id="itemCount">0개</h3>
-    </div>
-    <div class="price">
-      <span id="grandTotal">0</span>원
-    </div>
-  </div>
-  <button id="saveBtn">기록 저장</button>
-  <button id="resetBtn">전체 초기화</button>
-</footer>
+<div id="pageHistory" class="page">
+  <div class="topbar"><h1>🧾 장보기 기록</h1></div>
+  <div id="historyList"></div>
+</div>
+
+<nav class="tabBar">
+  <button class="tabBtn active" onclick="switchTab('shopping')" id="tabShopping">🛒</button>
+  <button class="tabBtn"        onclick="switchTab('history')"  id="tabHistory">🧾</button>
+</nav>
 
 <div id="editSheet">
   <div class="sheetContent">
     <div class="sheetHandle"></div>
-    <h2>상품 수정</h2>
-    <input id="sheetName" list="productSuggestions" placeholder="상품명">
+    <h2 style="margin-bottom:16px">상품 수정</h2>
+    <input id="sheetName"  list="productSuggestions" placeholder="상품명">
     <datalist id="productSuggestions"></datalist>
     <input id="sheetPrice" type="number" placeholder="가격">
-    <input id="sheetQty" type="number" placeholder="수량">
+    <input id="sheetQty"   type="number" placeholder="수량">
     <textarea id="sheetMemo" placeholder="메모"></textarea>
     <button id="saveSheetBtn">저장</button>
   </div>
 </div>
 
-<script src="db.js"></script>
-<script src="script.js"></script>
 <script>
-if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("./sw.js");
+// ── DB ────────────────────────────────────────────────
+const DB_NAME = "OCRShopDB", DB_VERSION = 1;
+let db;
+function initDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, DB_VERSION);
+    r.onerror = rej;
+    r.onsuccess = () => { db = r.result; res(); };
+    r.onupgradeneeded = e => {
+      db = e.target.result;
+      if (!db.objectStoreNames.contains("products"))
+        db.createObjectStore("products", { keyPath:"id", autoIncrement:true });
+      if (!db.objectStoreNames.contains("sessions"))
+        db.createObjectStore("sessions", { keyPath:"id", autoIncrement:true });
+    };
+  });
 }
+const gs = (n,m) => db.transaction(n,m).objectStore(n);
+const addProduct    = p  => new Promise(r => { gs("products","readwrite").add(p).onsuccess    = e => r(e.target.result); });
+const getProducts   = () => new Promise(r => { gs("products","readonly").getAll().onsuccess   = e => r(e.target.result); });
+const updateProduct = p  => new Promise(r => { gs("products","readwrite").put(p).onsuccess    = () => r(); });
+const deleteProduct = id => new Promise(r => { gs("products","readwrite").delete(id).onsuccess= () => r(); });
+const clearProducts = () => new Promise(r => { gs("products","readwrite").clear().onsuccess   = () => r(); });
+const addSession    = d  => new Promise(r => { gs("sessions","readwrite").add(d).onsuccess    = () => r(); });
+const getSessions   = () => new Promise(r => { gs("sessions","readonly").getAll().onsuccess   = e => r(e.target.result); });
+
+// ── 탭 ───────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".tabBtn").forEach(b => b.classList.remove("active"));
+  document.getElementById(tab==="shopping" ? "pageShopping":"pageHistory").classList.add("active");
+  document.getElementById(tab==="shopping" ? "tabShopping" :"tabHistory" ).classList.add("active");
+  if (tab === "history") loadHistory();
+}
+
+// ── 전역 ─────────────────────────────────────────────
+let products = [];
+let editingIndex = null;
+
+window.onload = async () => {
+  await initDB();
+  products = await getProducts();
+  renderProducts();
+};
+
+// ── 이미지 선택 → 즉시 카드 추가 ─────────────────────
+function handleImageSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = "";
+
+  const imageUrl = URL.createObjectURL(file);
+
+  // 1. 즉시 "분석중" 카드 DB에 추가
+  const placeholder = {
+    name: "분석 중...",
+    sub: "",
+    price: 0,
+    qty: 1,
+    image: imageUrl,
+    selected: false,   // 분석 완료 전엔 합계 제외
+    pending: true,
+    memo: ""
+  };
+
+  addProduct(placeholder).then(async newId => {
+    products = await getProducts();
+    renderProducts();
+
+    // 2. 백그라운드에서 OCR 실행
+    runOCR(file, imageUrl, newId);
+  });
+}
+
+document.getElementById("cameraInput").addEventListener("change", handleImageSelect);
+document.getElementById("galleryInput").addEventListener("change", handleImageSelect);
+
+// ── OCR (백그라운드) ──────────────────────────────────
+async function runOCR(file, imageUrl, productId) {
+  try {
+    let text = "";
+
+    if ("TextDetector" in window) {
+      // Android 내장 OCR
+      const bitmap   = await createImageBitmap(file);
+      const detector = new TextDetector();
+      const results  = await detector.detect(bitmap);
+      text = results.map(r => r.rawValue).join("\n");
+    } else {
+      // Tesseract (iOS)
+      const result = await Tesseract.recognize(file, "kor+eng");
+      text = result.data.text;
+    }
+
+    const parsed = parseOCRText(text);
+
+    // 3. 분석 완료 → 카드 업데이트
+    const idx = products.findIndex(p => p.id === productId);
+    if (idx === -1) return;
+
+    if (parsed.length > 0) {
+      // 첫 번째 인식 결과로 카드 업데이트
+      products[idx].name     = parsed[0].name;
+      products[idx].price    = parsed[0].price;
+      products[idx].selected = true;
+      products[idx].pending  = false;
+
+      await updateProduct(products[idx]);
+
+      // 추가 인식 결과는 새 카드로
+      for (let i = 1; i < parsed.length; i++) {
+        await addProduct({ ...parsed[i], image: imageUrl });
+      }
+    } else {
+      // 인식 실패 → 카드를 수동입력 상태로
+      products[idx].name    = "인식 실패 (탭하여 수정)";
+      products[idx].pending = false;
+      await updateProduct(products[idx]);
+    }
+
+    products = await getProducts();
+    renderProducts();
+
+  } catch(err) {
+    // 오류 시 카드 수동입력 상태로
+    const idx = products.findIndex(p => p.id === productId);
+    if (idx !== -1) {
+      products[idx].name    = "오류 (탭하여 수정)";
+      products[idx].pending = false;
+      await updateProduct(products[idx]);
+      products = await getProducts();
+      renderProducts();
+    }
+  }
+}
+
+// ── OCR 파싱 ─────────────────────────────────────────
+function parseOCRText(text) {
+  const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 1);
+  const results = [];
+  const priceRe = /[\d,]{4,9}/;
+
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(priceRe);
+    if (!m) continue;
+    const price = parseInt(m[0].replace(/,/g, ""));
+    if (price < 100 || price > 9999999) continue;
+    const name = (lines[i].replace(m[0],"").trim() || lines[i-1] || "상품").substring(0, 30);
+    results.push({ name, sub:"", price, qty:1, selected:true, pending:false, memo:"" });
+  }
+  return results;
+}
+
+// ── 렌더링 ────────────────────────────────────────────
+function renderProducts() {
+  const list = document.getElementById("productList");
+  list.innerHTML = "";
+  let total = 0, count = 0;
+
+  if (products.length === 0) {
+    list.innerHTML = `<div class="emptyMsg">사진을 찍으면 바로 추가됩니다</div>`;
+    document.getElementById("grandTotal").innerText = "0";
+    document.getElementById("itemCount").innerText  = "0개";
+    return;
+  }
+
+  products.forEach((p, index) => {
+    if (p.selected && !p.pending) { total += p.price * p.qty; count += p.qty; }
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "swipeWrapper";
+    wrapper.innerHTML = `
+      <div class="deleteArea" onclick="removeItem(${p.id})">삭제</div>
+      <div class="productCard ${p.pending ? 'pending' : ''}">
+        <input type="checkbox" ${p.selected && !p.pending ? "checked" : ""} ${p.pending ? "disabled" : ""} onchange="toggleItem(${index})">
+        <img src="${p.image}">
+        <div class="productInfo">
+          <h3 onclick="${p.pending ? '' : `quickEdit(${index})`}">${p.name}</h3>
+          <span class="pendingBadge ${p.pending ? '' : 'done'}">${p.pending ? '⏳ 분석중' : '✅ 완료'}</span>
+          <div class="price">${p.pending ? '-' : p.price.toLocaleString() + '원'}</div>
+        </div>
+        <div class="qtyBox">
+          <button class="qtyBtn" onclick="changeQty(${index},-1)" ${p.pending ? 'disabled' : ''}>－</button>
+          <span>${p.qty}</span>
+          <button class="qtyBtn" onclick="changeQty(${index},1)"  ${p.pending ? 'disabled' : ''}>＋</button>
+        </div>
+      </div>`;
+    list.appendChild(wrapper);
+    if (!p.pending) addSwipe(wrapper, index);
+  });
+
+  document.getElementById("grandTotal").innerText = total.toLocaleString();
+  document.getElementById("itemCount").innerText  = `${count}개`;
+  updateSuggestions();
+}
+
+// ── 스와이프 ──────────────────────────────────────────
+function addSwipe(wrapper, index) {
+  const card = wrapper.querySelector(".productCard");
+  let startX = 0, currentX = 0, pressTimer;
+  card.addEventListener("touchstart", e => {
+    startX = e.touches[0].clientX;
+    pressTimer = setTimeout(() => {
+      openEditSheet(index);
+      navigator.vibrate && navigator.vibrate(10);
+    }, 600);
+  });
+  card.addEventListener("touchmove", e => {
+    currentX = e.touches[0].clientX;
+    const diff = currentX - startX;
+    if (diff < 0) card.style.transform = `translateX(${Math.max(diff,-90)}px)`;
+    clearTimeout(pressTimer);
+  });
+  card.addEventListener("touchend", () => {
+    clearTimeout(pressTimer);
+    card.style.transform = (currentX - startX) < -50 ? "translateX(-90px)" : "translateX(0)";
+  });
+}
+
+// ── 상품 조작 ─────────────────────────────────────────
+async function changeQty(index, val) {
+  products[index].qty = Math.max(1, products[index].qty + val);
+  await updateProduct(products[index]);
+  renderProducts();
+}
+async function toggleItem(index) {
+  products[index].selected = !products[index].selected;
+  await updateProduct(products[index]);
+  renderProducts();
+}
+async function removeItem(id) {
+  await deleteProduct(id);
+  products = await getProducts();
+  renderProducts();
+}
+function quickEdit(index) {
+  const name = prompt("상품명 수정", products[index].name);
+  if (name) { products[index].name = name; updateProduct(products[index]); renderProducts(); }
+}
+function openEditSheet(index) {
+  editingIndex = index;
+  const p = products[index];
+  document.getElementById("sheetName").value  = p.name;
+  document.getElementById("sheetPrice").value = p.price;
+  document.getElementById("sheetQty").value   = p.qty;
+  document.getElementById("sheetMemo").value  = p.memo || "";
+  document.getElementById("editSheet").classList.add("show");
+}
+document.getElementById("saveSheetBtn").addEventListener("click", async () => {
+  const p = products[editingIndex];
+  p.name  = document.getElementById("sheetName").value;
+  p.price = parseInt(document.getElementById("sheetPrice").value) || 0;
+  p.qty   = parseInt(document.getElementById("sheetQty").value)   || 1;
+  p.memo  = document.getElementById("sheetMemo").value;
+  await updateProduct(p);
+  renderProducts();
+  document.getElementById("editSheet").classList.remove("show");
+});
+
+document.getElementById("saveBtn").addEventListener("click", async () => {
+  if (products.length === 0) { alert("저장할 상품이 없습니다."); return; }
+  const total = products.reduce((s,p) => p.selected && !p.pending ? s + p.price*p.qty : s, 0);
+  await addSession({ title:"장보기 기록", total, count:products.length, createdAt:Date.now() });
+  alert("기록 저장 완료!");
+});
+document.getElementById("resetBtn").addEventListener("click", async () => {
+  if (confirm("전체 삭제할까요?")) {
+    await clearProducts();
+    products = [];
+    renderProducts();
+  }
+});
+
+// ── 기록 ─────────────────────────────────────────────
+async function loadHistory() {
+  const list = document.getElementById("historyList");
+  list.innerHTML = "";
+  const sessions = await getSessions();
+  if (sessions.length === 0) {
+    list.innerHTML = `<div class="emptyMsg">저장된 기록이 없습니다</div>`;
+    return;
+  }
+  sessions.reverse().forEach(item => {
+    const card = document.createElement("div");
+    card.className = "historyCard";
+    card.innerHTML = `
+      <div class="hTitle">${item.title}</div>
+      <div class="hDate">${new Date(item.createdAt).toLocaleString()}</div>
+      <div class="hTotal">${item.total.toLocaleString()}원</div>
+      <div class="hCount">상품 ${item.count}개</div>`;
+    list.appendChild(card);
+  });
+}
+
+function updateSuggestions() {
+  const list = document.getElementById("productSuggestions");
+  list.innerHTML = "";
+  [...new Set(products.map(p => p.name))].forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    list.appendChild(opt);
+  });
+}
+
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js");
 </script>
 </body>
 </html>
