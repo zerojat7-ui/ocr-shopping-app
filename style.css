@@ -1,0 +1,265 @@
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  font-family:sans-serif;
+  background:#f5f6fa;
+  color:#111;
+}
+
+.app{
+  padding:20px;
+  padding-bottom:220px;
+}
+
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:20px;
+}
+
+.topbar button{
+  border:none;
+  background:#2563ff;
+  color:white;
+  padding:10px 15px;
+  border-radius:12px;
+}
+
+.uploadCard{
+  display:block;
+  background:white;
+  padding:25px;
+  border-radius:25px;
+  text-align:center;
+  margin-bottom:20px;
+  box-shadow:0 5px 20px rgba(0,0,0,0.05);
+}
+
+#previewImage{
+  width:100%;
+  border-radius:25px;
+  margin-bottom:20px;
+}
+
+.swipeWrapper{
+  position:relative;
+  overflow:hidden;
+  border-radius:25px;
+  margin-bottom:15px;
+}
+
+.deleteArea{
+  position:absolute;
+  right:0;
+  top:0;
+  bottom:0;
+  width:100px;
+  background:#ff4d4f;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  color:white;
+  font-weight:bold;
+}
+
+.productCard{
+  position:relative;
+  background:white;
+  border-radius:25px;
+  padding:15px;
+
+  display:flex;
+  gap:15px;
+  align-items:center;
+
+  transition:transform 0.2s;
+
+  touch-action:pan-y;
+}
+
+.productCard img{
+  width:90px;
+  height:90px;
+  border-radius:15px;
+  object-fit:cover;
+}
+
+.productInfo{
+  flex:1;
+}
+
+.productInfo h3{
+  margin-bottom:8px;
+}
+
+.productInfo p{
+  color:#2563ff;
+  font-size:22px;
+  font-weight:bold;
+}
+
+.qtyBox{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.qtyBtn{
+  width:35px;
+  height:35px;
+  border:none;
+  border-radius:50%;
+}
+
+.bottomBar{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+
+  background:white;
+
+  padding:20px;
+
+  border-top-left-radius:30px;
+  border-top-right-radius:30px;
+
+  box-shadow:0 -5px 20px rgba(0,0,0,0.08);
+}
+
+.summary{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:15px;
+}
+
+.price{
+  font-size:34px;
+  color:#2563ff;
+  font-weight:bold;
+}
+
+#saveBtn,
+#resetBtn{
+
+  width:100%;
+  height:60px;
+
+  border:none;
+
+  border-radius:18px;
+
+  font-size:18px;
+
+  margin-top:10px;
+}
+
+#saveBtn{
+  background:#2563ff;
+  color:white;
+}
+
+#resetBtn{
+  background:#ff4d4f;
+  color:white;
+}
+
+.historyCard{
+  background:white;
+  border-radius:25px;
+  padding:20px;
+  margin-bottom:15px;
+}
+
+#editSheet{
+
+  position:fixed;
+
+  left:0;
+  right:0;
+  bottom:-100%;
+
+  z-index:999;
+
+  transition:0.3s;
+
+  background:white;
+
+  border-top-left-radius:30px;
+  border-top-right-radius:30px;
+
+  box-shadow:
+  0 -10px 30px rgba(0,0,0,0.15);
+}
+
+#editSheet.show{
+  bottom:0;
+}
+
+.sheetContent{
+  padding:25px;
+}
+
+.sheetHandle{
+
+  width:70px;
+  height:6px;
+
+  background:#ddd;
+
+  border-radius:999px;
+
+  margin:auto;
+  margin-bottom:20px;
+}
+
+#editSheet input,
+#editSheet textarea{
+
+  width:100%;
+
+  height:55px;
+
+  margin-bottom:15px;
+
+  border:none;
+
+  background:#f5f6fa;
+
+  border-radius:15px;
+
+  padding:15px;
+
+  font-size:17px;
+}
+
+#editSheet textarea{
+  height:120px;
+}
+
+#saveSheetBtn{
+
+  width:100%;
+
+  height:60px;
+
+  border:none;
+
+  border-radius:18px;
+
+  background:#2563ff;
+
+  color:white;
+
+  font-size:18px;
+
+  font-weight:bold;
+}
